@@ -189,18 +189,29 @@ class BaseCrawler:
     search_url: str = ""
     retailer: str = ""
     rate_limiter: RateLimiter
+    default_timeout: float = 10.0
 
-    def __init__(self, session: Optional[HttpSession] = None) -> None:
+    def __init__(
+        self,
+        session: Optional[HttpSession] = None,
+        *,
+        timeout: Optional[float] = None,
+    ) -> None:
         self.session = session or HttpSession()
         apply_default_headers(self.session)
         self.rate_limiter = RateLimiter(max_calls_per_second=1.0)
+        if timeout is None:
+            timeout = self.default_timeout
+        self.request_timeout = timeout
 
     def get(self, url: str, **kwargs) -> HttpResponse:
+        timeout = kwargs.pop("timeout", self.request_timeout)
         response = request_with_retry(
             self.session,
             "GET",
             url,
             rate_limiter=self.rate_limiter,
+            timeout=timeout,
             **kwargs,
         )
         return response

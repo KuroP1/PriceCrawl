@@ -1,13 +1,14 @@
-import type { SearchResult } from '../types';
+import type { SearchResult, SearchResponse } from '../types';
 
 interface ResultsListProps {
   query: string;
   results: SearchResult[] | null;
   isLoading: boolean;
   error: string | null;
+  adapterErrors: SearchResponse['errors'];
 }
 
-const ResultsList = ({ query, results, isLoading, error }: ResultsListProps) => {
+const ResultsList = ({ query, results, isLoading, error, adapterErrors }: ResultsListProps) => {
   if (isLoading) {
     return <p role="status">Loading results…</p>;
   }
@@ -21,13 +22,33 @@ const ResultsList = ({ query, results, isLoading, error }: ResultsListProps) => 
     );
   }
 
+  const adapterErrorNotice =
+    adapterErrors.length > 0 ? (
+      <div role="status" className="adapter-errors">
+        <p>We couldn&apos;t retrieve data from every retailer:</p>
+        <ul>
+          {adapterErrors.map(({ adapter, error: message }) => (
+            <li key={adapter}>
+              <strong>{adapter}:</strong> {message}
+            </li>
+          ))}
+        </ul>
+      </div>
+    ) : null;
+
   if (!results || results.length === 0) {
-    return query ? <p>No results found for “{query}”.</p> : <p>Search for a product to see prices.</p>;
+    return (
+      <div>
+        {adapterErrorNotice}
+        {query ? <p>No results found for “{query}”.</p> : <p>Search for a product to see prices.</p>}
+      </div>
+    );
   }
 
   return (
     <section aria-live="polite">
       <h2>Results</h2>
+      {adapterErrorNotice}
       <ul>
         {results.map((result) => (
           <li key={`${result.retailer}-${result.sku}`}>
