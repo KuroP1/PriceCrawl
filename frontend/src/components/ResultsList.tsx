@@ -7,11 +7,6 @@ interface ResultsListProps {
   error: string | null;
 }
 
-const formatTimestamp = (timestamp: string) => {
-  const date = new Date(timestamp);
-  return Number.isNaN(date.getTime()) ? timestamp : date.toLocaleString();
-};
-
 const ResultsList = ({ query, results, isLoading, error }: ResultsListProps) => {
   if (isLoading) {
     return <p role="status">Loading results…</p>;
@@ -35,17 +30,24 @@ const ResultsList = ({ query, results, isLoading, error }: ResultsListProps) => 
       <h2>Results</h2>
       <ul>
         {results.map((result) => (
-          <li key={`${result.retailerName}-${result.lastUpdated}`}>
-            <h3>{result.retailerName}</h3>
+          <li key={`${result.retailer}-${result.sku}`}>
+            <h3>{result.name}</h3>
             <p>
-              <strong>Price:</strong> ${result.price.toFixed(2)}
+              <strong>Retailer:</strong> {result.retailer}
             </p>
             <p>
-              <strong>Status:</strong> {result.inStock ? 'In stock' : 'Out of stock'}
+              <strong>Price:</strong> {result.currency} {result.price.toFixed(2)}
             </p>
             <p>
-              <strong>Last updated:</strong> {formatTimestamp(result.lastUpdated)}
+              <strong>SKU:</strong> {result.sku}
             </p>
+            {result.url && (
+              <p>
+                <a href={result.url} target="_blank" rel="noopener noreferrer">
+                  View Product
+                </a>
+              </p>
+            )}
           </li>
         ))}
       </ul>
@@ -54,3 +56,4 @@ const ResultsList = ({ query, results, isLoading, error }: ResultsListProps) => 
 };
 
 export default ResultsList;
+

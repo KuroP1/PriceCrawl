@@ -1,6 +1,16 @@
 export interface SearchResult {
-  retailerName: string;
+  sku: string;
+  name: string;
+  retailer: string;
   price: number;
-  inStock: boolean;
-  lastUpdated: string;
+  currency: string;
+  url?: string | null;
+}
+
+export interface SearchResponse {
+  results: SearchResult[];
+  errors: Array<{
+    adapter: string;
+    error: string;
+  }>;
 }

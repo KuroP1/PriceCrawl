@@ -27,8 +27,9 @@ const SearchPage = () => {
         throw new Error(`Search failed with status ${response.status}`);
       }
 
-      const data: SearchResult[] = await response.json();
-      setResults(data);
+      const data = await response.json();
+      // Backend returns {results: [...], errors: [...]}
+      setResults(data.results || []);
     } catch (err) {
       setResults(null);
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
