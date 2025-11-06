@@ -50,6 +50,10 @@ class RateLimiter:
 class HttpRequestException(Exception):
     """Raised when an HTTP request fails permanently."""
 
+    def __init__(self, message: str, *, status_code: Optional[int] = None) -> None:
+        super().__init__(message)
+        self.status_code = status_code
+
 
 @dataclass
 class HttpResponse:
@@ -59,7 +63,7 @@ class HttpResponse:
 
     def raise_for_status(self) -> None:
         if self.status_code >= 400:
-            raise HttpRequestException(f"HTTP {self.status_code}")
+            raise HttpRequestException(f"HTTP {self.status_code}", status_code=self.status_code)
 
 
 class HttpSession:
@@ -219,8 +223,15 @@ class BaseCrawler:
     def _fetch_search_page(self, query: str) -> str:
         if not self.search_url:
             raise NotImplementedError("search_url must be defined in subclasses")
-        response = self.get(self.search_url, params=self.build_query_params(query))
-        response.raise_for_status()
+        try:
+            response = self.get(self.search_url, params=self.build_query_params(query))
+            response.raise_for_status()
+        except HttpRequestException as exc:
+            if getattr(exc, "status_code", None) == 404:
+                # Some retailers return HTTP 404 when a query has no matches.
+                # Treat this as an empty result set instead of a hard error.
+                return ""
+            raise
         return response.text
 
     def build_query_params(self, query: str) -> Dict[str, str]:

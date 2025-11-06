@@ -19,6 +19,8 @@ class FortressCrawler(BaseCrawler):
 
     def fetch_prices(self, query: str) -> List[PriceQuote]:
         html = self._fetch_search_page(query)
+        if not html.strip():
+            return []
         return self._parse(html)
 
     def _fetch_search_page(self, query: str) -> str:

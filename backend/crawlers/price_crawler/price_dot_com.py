@@ -11,13 +11,15 @@ from ..base import BaseCrawler, PriceQuote, normalize_price
 
 class PriceDotComCrawler(BaseCrawler):
     retailer = "Price.com.hk"
-    search_url = "http://www.price.com.hk/search.php"
+    search_url = "https://www.price.com.hk/search.php"
 
     def build_query_params(self, query: str) -> Dict[str, str]:
         return {"g": "0", "q": query}
 
     def fetch_prices(self, query: str) -> List[PriceQuote]:
         html = self._fetch_search_page(query)
+        if not html.strip():
+            return []
         return self._parse(html)
 
     def _parse(self, html: str) -> List[PriceQuote]:
@@ -38,7 +40,7 @@ class PriceDotComCrawler(BaseCrawler):
                     name=tile.name,
                     price=price,
                     currency="HKD",
-                    url=urljoin("http://www.price.com.hk", tile.url or ""),
+                    url=urljoin("https://www.price.com.hk", tile.url or ""),
                 )
             )
 
