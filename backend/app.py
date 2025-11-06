@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+from backend.services.adapters import build_default_adapters
 from backend.services.search import SearchService
 
 
@@ -23,8 +24,8 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def setup_service() -> None:
-    # Lazily initialize the search service with any real crawler adapters.
-    app.state.search_service = SearchService(adapters=[])
+    adapters = build_default_adapters()
+    app.state.search_service = SearchService(adapters=adapters)
 
 
 @app.post("/search")
