@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import SearchPage from '../SearchPage';
-import type { SearchResult } from '../types';
+import type { SearchResponse } from '../types';
 
 describe('SearchPage', () => {
   const renderSearchPage = () => render(<SearchPage />);
@@ -11,18 +11,23 @@ describe('SearchPage', () => {
   });
 
   it('submits the search form and displays results', async () => {
-    const mockResults: SearchResult[] = [
-      {
-        retailerName: 'Retailer A',
-        price: 19.99,
-        inStock: true,
-        lastUpdated: '2024-01-01T12:00:00Z'
-      }
-    ];
+    const mockResponse: SearchResponse = {
+      results: [
+        {
+          sku: 'sku-1',
+          name: 'Noise Cancelling Headphones',
+          retailer: 'Retailer A',
+          price: 1999,
+          currency: 'HKD',
+          url: 'https://example.com/product'
+        }
+      ],
+      errors: []
+    };
 
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
       ok: true,
-      json: async () => mockResults
+      json: async () => mockResponse
     } as Response);
 
     renderSearchPage();
@@ -41,9 +46,10 @@ describe('SearchPage', () => {
 
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: /results/i })).toBeInTheDocument();
-      expect(screen.getByText('Retailer A')).toBeInTheDocument();
-      expect(screen.getByText(/\$19.99/)).toBeInTheDocument();
-      expect(screen.getByText(/in stock/i)).toBeInTheDocument();
+      expect(screen.getByText('Noise Cancelling Headphones')).toBeInTheDocument();
+      expect(screen.getByText(/Retailer:\s+Retailer A/)).toBeInTheDocument();
+      expect(screen.getByText(/Price:\s+HKD 1999.00/)).toBeInTheDocument();
+      expect(screen.getByText(/SKU:/)).toHaveTextContent('SKU: sku-1');
     });
   });
 
@@ -78,6 +84,36 @@ describe('SearchPage', () => {
     await waitFor(() => {
       expect(screen.getByRole('alert')).toBeInTheDocument();
       expect(screen.getByText(/unable to fetch prices/i)).toBeInTheDocument();
+    });
+  });
+
+  it('surfaces adapter-specific errors from the backend response', async () => {
+    const mockResponse: SearchResponse = {
+      results: [],
+      errors: [
+        {
+          adapter: 'Price.com.hk',
+          error: 'HTTP 403'
+        }
+      ]
+    };
+
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockResponse
+    } as Response);
+
+    renderSearchPage();
+
+    const input = screen.getByLabelText(/product/i);
+    await userEvent.type(input, 'camera');
+    const submitButton = screen.getByRole('button', { name: /search/i });
+    await userEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/No results found/)).toBeInTheDocument();
+      expect(screen.getByText(/Price\.com.hk/)).toBeInTheDocument();
+      expect(screen.getByText(/HTTP 403/)).toBeInTheDocument();
     });
   });
 });
