@@ -4,6 +4,8 @@ from decimal import Decimal
 from pathlib import Path
 import pytest
 
+from backend.crawlers.base import HttpRequestException
+
 from backend.crawlers.price_crawler.broadway import (
     BroadwayCrawler,
     fetch_prices as fetch_broadway_prices,
@@ -131,3 +133,20 @@ def test_price_dot_com_parser(monkeypatch: pytest.MonkeyPatch) -> None:
 
     wrapper_quotes = fetch_price_dot_com_prices("iphone")
     assert_quotes_match(wrapper_quotes, expected)
+
+
+@pytest.mark.parametrize(
+    "crawler_cls",
+    [BroadwayCrawler, FortressCrawler, PriceDotComCrawler],
+)
+def test_crawlers_treat_404_as_no_results(
+    monkeypatch: pytest.MonkeyPatch, crawler_cls
+) -> None:
+    crawler = crawler_cls()
+
+    def fake_get(self, url, **kwargs):  # pragma: no cover - runtime patched
+        raise HttpRequestException("HTTP 404", status_code=404)
+
+    monkeypatch.setattr(crawler_cls, "get", fake_get)
+
+    assert crawler.fetch_prices("nonexistent") == []
